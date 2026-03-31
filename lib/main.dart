@@ -176,7 +176,7 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                     ),
                     child: Text(
-                      "Mot de passe oublié ?",
+                      "Mot de passe aya ?",
                       style: TextStyle(color: medicalBlue),
                     ),
                   ),
