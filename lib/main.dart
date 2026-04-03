@@ -1,239 +1,155 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'firebase_options.dart';
-import 'signup.dart';
-import 'mtps.dart';
-import 'home.dart';
-import 'patient_list.dart'; // ✅ AJOUTÉ
-import 'add_patient.dart';
-import 'patient_positions.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-  runApp(MyApp());
+  await Firebase.initializeApp();
+  runApp(ForgotPasswordApp());
 }
 
-const Color medicalBlue = Color(0xFF1E90FF);
-const Color medicalGreen = Color(0xFF28A745);
-
-class MyApp extends StatelessWidget {
+class ForgotPasswordApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Lit MoveX',
+      title: 'Mot de passe oublié',
       theme: ThemeData(
         scaffoldBackgroundColor: Colors.white,
         fontFamily: 'Montserrat',
       ),
-      home: LoginPage(),
+      home: ForgotPasswordPage(),
     );
   }
 }
 
-class LoginPage extends StatefulWidget {
+class ForgotPasswordPage extends StatefulWidget {
   @override
-  _LoginPageState createState() => _LoginPageState();
+  _ForgotPasswordPageState createState() => _ForgotPasswordPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  bool _isLoading = false;
-  final _formKey = GlobalKey<FormState>();
-
-  Future<void> _signIn() async {
-    if (_formKey.currentState!.validate()) {
-      setState(() => _isLoading = true);
-      try {
-        await FirebaseAuth.instance.signInWithEmailAndPassword(
-          email: _emailController.text.trim(),
-          password: _passwordController.text.trim(),
-        );
-        if (mounted) {
-          // ✅ NAVIGATION VERS PatientListScreen
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => PatientListScreen()),
-          );
-        }
-      } on FirebaseAuthException catch (e) {
-        if (mounted) {
-          String message = _getErrorMessage(e.code);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(message), backgroundColor: Colors.red),
-          );
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
-          );
-        }
-      } finally {
-        if (mounted) setState(() => _isLoading = false);
-      }
-    }
-  }
-
-  String _getErrorMessage(String? code) {
-    switch (code) {
-      case 'user-not-found':
-        return 'Aucun utilisateur trouvé';
-      case 'wrong-password':
-        return 'Mot de passe incorrect';
-      case 'invalid-email':
-        return 'Email invalide';
-      default:
-        return 'Erreur: ${code ?? 'Inconnue'}';
-    }
-  }
+class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
+  final TextEditingController emailController = TextEditingController();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  bool isLoading = false;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        automaticallyImplyLeading: false,
+      ),
       body: Center(
         child: SingleChildScrollView(
-          padding: EdgeInsets.symmetric(horizontal: 32),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Image.asset("assets/logo.png", height: 100),
-                SizedBox(height: 16),
-                Text(
-                  "Lit MoveX",
-                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+          padding: EdgeInsets.all(24),
+          child: Column(
+            children: [
+              Image.asset('assets/logo.png', width: 120, height: 120),
+              SizedBox(height: 20),
+              Text(
+                'Mot de passe oublié',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
                 ),
-                SizedBox(height: 8),
-                Text(
-                  "Contrôle de lit médical connecté",
-                  style: TextStyle(fontSize: 16, color: Colors.grey[600]),
-                ),
-                SizedBox(height: 32),
-                TextFormField(
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) return 'Email requis';
-                    if (!RegExp(
-                      r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
-                    ).hasMatch(value)) return 'Email invalide';
-                    return null;
-                  },
-                  decoration: InputDecoration(
-                    prefixIcon: Icon(Icons.email, color: Colors.grey),
-                    hintText: "votre@email.com",
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                    filled: true,
-                    fillColor: Colors.grey[200],
-                    contentPadding: EdgeInsets.symmetric(
-                      vertical: 16,
-                      horizontal: 16,
-                    ),
+              ),
+              SizedBox(height: 8),
+              Text(
+                'Entrez votre email pour recevoir un lien de réinitialisation',
+                style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 30),
+              TextField(
+                controller: emailController,
+                decoration: InputDecoration(
+                  prefixIcon: Icon(Icons.email, color: Colors.grey),
+                  hintText: 'votre@email.com',
+                  filled: true,
+                  fillColor: Colors.grey[200],
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide.none,
                   ),
                 ),
-                SizedBox(height: 16),
-                TextFormField(
-                  controller: _passwordController,
-                  obscureText: true,
-                  validator: (value) {
-                    if (value == null || value.isEmpty)
-                      return 'Mot de passe requis';
-                    if (value.length < 6) return 'Min 6 caractères';
-                    return null;
-                  },
-                  decoration: InputDecoration(
-                    prefixIcon: Icon(Icons.lock, color: Colors.grey),
-                    hintText: "••••••••",
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                    filled: true,
-                    fillColor: Colors.grey[200],
-                    contentPadding: EdgeInsets.symmetric(
-                      vertical: 16,
-                      horizontal: 16,
+              ),
+              SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: isLoading ? null : _sendResetEmail,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFF4CAF50),
+                    minimumSize: Size(double.infinity, 50),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
                     ),
                   ),
+                  child: isLoading
+                      ? CircularProgressIndicator(color: Colors.white)
+                      : Text(
+                          'Envoyer le lien',
+                          style: TextStyle(color: Colors.white, fontSize: 16),
+                        ),
                 ),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ForgotPasswordPage(),
-                      ),
-                    ),
-                    child: Text(
-                      "Mot de passe oublié ?",
-                      style: TextStyle(color: medicalBlue),
-                    ),
-                  ),
+              ),
+              SizedBox(height: 16),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                child: Text(
+                  'Retour à la connexion',
+                  style: TextStyle(color: Color(0xFF2196F3)),
                 ),
-                SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _signIn,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: medicalGreen,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: _isLoading
-                        ? CircularProgressIndicator(color: Colors.white)
-                        : Text(
-                            "Se connecter",
-                            style: TextStyle(color: Colors.white, fontSize: 16),
-                          ),
-                  ),
-                ),
-                SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => SignupPage()),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: medicalBlue),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: Text(
-                      "Créer un compte",
-                      style: TextStyle(color: medicalBlue, fontSize: 16),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
+  Future<void> _sendResetEmail() async {
+    if (emailController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Veuillez entrer votre email')),
+      );
+      return;
+    }
+
+    setState(() => isLoading = true);
+
+    try {
+      await _auth.sendPasswordResetEmail(
+        email: emailController.text.trim(),
+      );
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('✅ Lien envoyé à ${emailController.text}'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 4),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('❌ Erreur: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      setState(() => isLoading = false);
+    }
+  }
+
   @override
   void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
+    emailController.dispose();
     super.dispose();
   }
 }
